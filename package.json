@@ -2,12 +2,14 @@
   "name": "speech-sample",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "dependencies": {
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^14.0.0",
     "@testing-library/user-event": "^14.4.3",
     "axios": "^1.4.0",
     "bootstrap": "^5.3.0",
+    "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "microsoft-cognitiveservices-speech-sdk": "^1.32.0",
     "react": "^18.3.1",
@@ -22,7 +24,7 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "server": "node-env-run server --exec nodemon | pino-colada",
+    "server": "nodemon --exec node --experimental-modules server/index.mjs | pino-colada",
     "dev": "run-p server start"
   },
   "eslintConfig": {

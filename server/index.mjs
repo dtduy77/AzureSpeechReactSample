@@ -1,24 +1,18 @@
-const result = require("dotenv").config();
-
-if (result.error) {
-  console.error("Error loading .env file:", result.error);
-} else {
-  console.log("Environment variables loaded:", result.parsed);
-}
-
-const express = require("express");
-const axios = require("axios");
-const bodyParser = require("body-parser");
-const pino = require("express-pino-logger")();
+import "dotenv/config";
+import express from "express";
+import axios from "axios";
+import bodyParser from "body-parser";
+import pino from "express-pino-logger";
+import cors from "cors";
 
 const app = express();
+app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(pino);
+app.use(pino());
 
-app.get("/api/get-speech-token", async (req, res, next) => {
+app.get("/api/get-speech-token", async (req, res) => {
   res.setHeader("Content-Type", "application/json");
-  const speechKey = process.env.SPEECH_KEY;
-  const speechRegion = process.env.SPEECH_REGION;
+  const { SPEECH_KEY: speechKey, SPEECH_REGION: speechRegion } = process.env;
 
   if (
     speechKey === "paste-your-speech-key-here" ||
@@ -48,6 +42,6 @@ app.get("/api/get-speech-token", async (req, res, next) => {
   }
 });
 
-app.listen(3001, () =>
-  console.log("Express server is running on localhost:3001")
-);
+app.listen(3001, () => {
+  console.log("Express server is running on localhost:3001");
+});

@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Container } from "reactstrap";
-import { getTokenOrRefresh } from "./token_util";
+import { getTokenOrRefresh } from "./token_util.js";
 import "./custom.css";
 import { ResultReason } from "microsoft-cognitiveservices-speech-sdk";
-
-const speechsdk = require("microsoft-cognitiveservices-speech-sdk");
+import * as speechsdk from "microsoft-cognitiveservices-speech-sdk";
 
 export default function App() {
   const [displayText, setDisplayText] = useState(
@@ -16,13 +15,11 @@ export default function App() {
 
   useEffect(() => {
     return () => {
-      if (recognizer) {
-        recognizer.close();
-      }
+      recognizer?.close();
     };
   }, [recognizer]);
 
-  async function sttFromMic() {
+  const sttFromMic = async () => {
     const tokenObj = await getTokenOrRefresh();
     const speechConfig = speechsdk.SpeechConfig.fromAuthorizationToken(
       tokenObj.authToken,
@@ -31,65 +28,58 @@ export default function App() {
     speechConfig.speechRecognitionLanguage = "en-US";
 
     const audioConfig = speechsdk.AudioConfig.fromDefaultMicrophoneInput();
-    const recognizer = new speechsdk.SpeechRecognizer(
+    const newRecognizer = new speechsdk.SpeechRecognizer(
       speechConfig,
       audioConfig
     );
 
     setDisplayText("Listening...");
-    setRecognizer(recognizer);
+    setRecognizer(newRecognizer);
 
-    recognizer.recognizing = (s, e) => {
+    newRecognizer.recognizing = (s, e) => {
       if (e.result.reason === ResultReason.RecognizingSpeech) {
         setDisplayText(`Recognizing: ${e.result.text}`);
       }
     };
 
-    recognizer.recognized = (s, e) => {
+    newRecognizer.recognized = (s, e) => {
       if (e.result.reason === ResultReason.RecognizedSpeech) {
         setDisplayText(`Recognized: ${e.result.text}`);
         setFullTranscription(
-          (prevTranscription) => prevTranscription + " " + e.result.text
+          (prevTranscription) => `${prevTranscription} ${e.result.text}`
         );
       } else if (e.result.reason === ResultReason.NoMatch) {
         setDisplayText("No match: Speech could not be recognized.");
       }
     };
 
-    recognizer.canceled = (s, e) => {
+    newRecognizer.canceled = (s, e) => {
       setDisplayText(`Canceled: ${e.reason} ${e.errorDetails}`);
-      recognizer.stopContinuousRecognitionAsync();
+      newRecognizer.stopContinuousRecognitionAsync();
     };
 
-    recognizer.sessionStarted = (s, e) => {
+    newRecognizer.sessionStarted = () => {
       setDisplayText("Session started.");
     };
 
-    recognizer.sessionStopped = (s, e) => {
+    newRecognizer.sessionStopped = () => {
       setDisplayText("Session stopped.");
-      recognizer.stopContinuousRecognitionAsync();
+      newRecognizer.stopContinuousRecognitionAsync();
     };
 
-    recognizer.startContinuousRecognitionAsync();
-  }
+    newRecognizer.startContinuousRecognitionAsync();
+  };
 
-  async function stopRecognition() {
-    if (recognizer) {
-      recognizer.stopContinuousRecognitionAsync(
-        () => {
-          setDisplayText("Recognition stopped.");
-        },
-        (err) => {
-          setDisplayText(`Error stopping recognition: ${err}`);
-        }
-      );
-    }
-  }
+  const stopRecognition = async () => {
+    recognizer?.stopContinuousRecognitionAsync(
+      () => setDisplayText("Recognition stopped."),
+      (err) => setDisplayText(`Error stopping recognition: ${err}`)
+    );
+  };
 
-  async function fileChange(event) {
+  const fileChange = async (event) => {
     const audioFile = event.target.files[0];
-    console.log(audioFile);
-    const fileInfo = audioFile.name + ` size=${audioFile.size} bytes `;
+    const fileInfo = `${audioFile.name} size=${audioFile.size} bytes `;
 
     setDisplayText(fileInfo);
 
@@ -101,12 +91,12 @@ export default function App() {
     speechConfig.speechRecognitionLanguage = "en-US";
 
     const audioConfig = speechsdk.AudioConfig.fromWavFileInput(audioFile);
-    const recognizer = new speechsdk.SpeechRecognizer(
+    const newRecognizer = new speechsdk.SpeechRecognizer(
       speechConfig,
       audioConfig
     );
 
-    recognizer.recognizeOnceAsync((result) => {
+    newRecognizer.recognizeOnceAsync((result) => {
       let text;
       if (result.reason === ResultReason.RecognizedSpeech) {
         text = `RECOGNIZED: Text=${result.text}`;
@@ -115,21 +105,18 @@ export default function App() {
           "ERROR: Speech was cancelled or could not be recognized. Ensure your microphone is working properly.";
       }
 
-      setDisplayText(fileInfo + text);
+      setDisplayText(`${fileInfo}${text}`);
     });
-  }
+  };
 
-  async function textToSpeech() {
+  const textToSpeech = async () => {
     const tokenObj = await getTokenOrRefresh();
     const speechConfig = speechsdk.SpeechConfig.fromAuthorizationToken(
       tokenObj.authToken,
       tokenObj.region
     );
     const myPlayer = new speechsdk.SpeakerAudioDestination();
-    updatePlayer((p) => {
-      p.p = myPlayer;
-      return p;
-    });
+    updatePlayer({ p: myPlayer, muted: player.muted });
     const audioConfig = speechsdk.AudioConfig.fromSpeakerOutput(player.p);
 
     let synthesizer = new speechsdk.SpeechSynthesizer(
@@ -155,24 +142,20 @@ export default function App() {
         synthesizer = undefined;
         setDisplayText(text);
       },
-      function (err) {
+      (err) => {
         setDisplayText(`Error: ${err}.\n`);
-
         synthesizer.close();
         synthesizer = undefined;
       }
     );
-  }
+  };
 
   return (
     <Container className="app-container">
       <h1 className="display-4 mb-3">Speech sample app</h1>
       <div className="row main-container">
         <div className="col-6">
-          <i
-            className="fas fa-microphone fa-lg mr-2"
-            onClick={() => sttFromMic()}
-          ></i>
+          <i className="fas fa-microphone fa-lg mr-2" onClick={sttFromMic}></i>
           Convert speech to text from your mic.
           <div className="mt-2">
             <label htmlFor="audio-file">
@@ -181,7 +164,7 @@ export default function App() {
             <input
               type="file"
               id="audio-file"
-              onChange={(e) => fileChange(e)}
+              onChange={fileChange}
               style={{ display: "none" }}
             />
             Convert speech to text from an audio file.
@@ -189,15 +172,12 @@ export default function App() {
           <div className="mt-2">
             <i
               className="fas fa-volume-up fa-lg mr-2"
-              onClick={() => textToSpeech()}
+              onClick={textToSpeech}
             ></i>
             Convert text to speech.
           </div>
           <div className="mt-2">
-            <i
-              className="fas fa-stop fa-lg mr-2"
-              onClick={() => stopRecognition()}
-            ></i>
+            <i className="fas fa-stop fa-lg mr-2" onClick={stopRecognition}></i>
             Stop speech recognition.
           </div>
         </div>
